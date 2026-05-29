@@ -10,42 +10,62 @@
       font-family: Arial, sans-serif;
       background: #f6f8f5;
       color: #1f2d1f;
-      max-width: 850px;
+      max-width: 950px;
       margin: 40px auto;
       padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      margin-top: 0;
-      color: #555;
     }
 
     .calculator {
       background: white;
       border-radius: 14px;
-      padding: 25px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      padding: 28px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      margin-top: 0;
+      margin-bottom: 28px;
+      color: #555;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    h2 {
+      margin-top: 28px;
+      margin-bottom: 18px;
+      font-size: 1.5rem;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 18px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 32px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
     }
 
     label {
       font-weight: bold;
-      display: block;
-      margin-bottom: 6px;
+      display: flex;
+      align-items: end;
+      min-height: 42px;
+      margin-bottom: 8px;
+      line-height: 1.1;
     }
 
     input {
       width: 100%;
+      height: 46px;
       padding: 10px;
       font-size: 1rem;
       border: 2px solid #d6c94d;
@@ -54,10 +74,15 @@
       box-sizing: border-box;
     }
 
+    input:focus {
+      outline: 3px solid rgba(214, 201, 77, 0.35);
+    }
+
     .note {
       font-size: 0.85rem;
       color: #666;
-      margin-top: 5px;
+      margin-top: 6px;
+      line-height: 1.2;
     }
 
     .results {
@@ -78,13 +103,46 @@
     }
 
     .result-value {
-      font-size: 1.3rem;
+      font-size: 1.35rem;
+    }
+
+    .formula-note {
+      font-size: 0.82rem;
+      color: #555;
+      margin-top: 5px;
+      line-height: 1.3;
     }
 
     .footer {
-      margin-top: 25px;
+      margin-top: 28px;
       font-size: 0.9rem;
       color: #555;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 500px) {
+      body {
+        margin: 15px auto;
+        padding: 12px;
+      }
+
+      .calculator {
+        padding: 20px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      label {
+        min-height: auto;
+      }
     }
   </style>
 </head>
@@ -92,6 +150,7 @@
 <body>
   <div class="calculator">
     <h1>Copper Dose Calculator</h1>
+
     <p class="subtitle">
       Enter pond conditions below to estimate copper dose. Yellow cells are inputs; green cells calculate automatically.
     </p>
@@ -99,24 +158,24 @@
     <h2>Input Data</h2>
 
     <div class="grid">
-      <div>
+      <div class="field">
         <label for="ph">pH</label>
         <input id="ph" type="number" step="0.01" value="8" />
       </div>
 
-      <div>
+      <div class="field">
         <label for="doc">DOC (mg/L)</label>
         <input id="doc" type="number" step="0.01" placeholder="20" />
         <div class="note">If left blank, DOC defaults to 20 mg/L.</div>
       </div>
 
-      <div>
+      <div class="field">
         <label for="area">Pond surface area (acres)</label>
         <input id="area" type="number" step="0.01" placeholder="10" />
         <div class="note">If left blank, area defaults to 10 acres.</div>
       </div>
 
-      <div>
+      <div class="field">
         <label for="depth">Average pond depth (ft)</label>
         <input id="depth" type="number" step="0.01" placeholder="4" />
         <div class="note">If left blank, depth defaults to 4 ft.</div>
@@ -129,16 +188,25 @@
       <div class="result-box">
         <div class="result-label">mg/L Cu</div>
         <div class="result-value" id="cuDose">—</div>
+        <div class="formula-note">
+          Calculated from pH and DOC.
+        </div>
       </div>
 
       <div class="result-box">
         <div class="result-label">lb/acre-ft CuSO₄·5H₂O</div>
         <div class="result-value" id="cuso4Rate">—</div>
+        <div class="formula-note">
+          Calculated from the mg/L Cu recommendation.
+        </div>
       </div>
 
       <div class="result-box">
         <div class="result-label">Total copper sulfate pentahydrate needed</div>
         <div class="result-value" id="totalNeeded">—</div>
+        <div class="formula-note">
+          Calculated as lb/acre-ft × pond surface area × average depth.
+        </div>
       </div>
     </div>
 
@@ -148,32 +216,43 @@
   </div>
 
   <script>
+    function getValueOrDefault(id, defaultValue) {
+      const value = parseFloat(document.getElementById(id).value);
+      return isNaN(value) ? defaultValue : value;
+    }
+
     function calculateDose() {
       const pH = parseFloat(document.getElementById("ph").value);
-      const DOC = parseFloat(document.getElementById("doc").value) || 20;
-      const area = parseFloat(document.getElementById("area").value) || 10;
-      const depth = parseFloat(document.getElementById("depth").value) || 4;
+      const DOC = getValueOrDefault("doc", 20);
+      const area = getValueOrDefault("area", 10);
+      const depth = getValueOrDefault("depth", 4);
+
+      const cuDoseBox = document.getElementById("cuDose");
+      const cuso4RateBox = document.getElementById("cuso4Rate");
+      const totalNeededBox = document.getElementById("totalNeeded");
 
       if (isNaN(pH)) {
-        document.getElementById("cuDose").textContent = "Enter pH";
-        document.getElementById("cuso4Rate").textContent = "—";
-        document.getElementById("totalNeeded").textContent = "—";
+        cuDoseBox.textContent = "Enter pH";
+        cuso4RateBox.textContent = "—";
+        totalNeededBox.textContent = "—";
         return;
       }
 
-      // Same formula as the spreadsheet:
-      // mg/L Cu = (24.234 + 4.396*pH + 2.342*DOC) / 1000
+      // Excel equivalent:
+      // =(24.234+(4.396*B5)+(2.342*IF(C5="",20,C5)))/1000
       const cuMgL = (24.234 + (4.396 * pH) + (2.342 * DOC)) / 1000;
 
-      // Convert mg/L Cu to lb/acre-ft CuSO4·5H2O
+      // Excel equivalent:
+      // =C9/0.255*2.72
       const cuso4LbPerAcreFt = (cuMgL / 0.255) * 2.72;
 
-      // Total product needed
+      // Corrected total copper sulfate formula:
+      // =C10*IF(D5="",10,D5)*IF(E5="",4,E5)
       const totalLbs = cuso4LbPerAcreFt * area * depth;
 
-      document.getElementById("cuDose").textContent = cuMgL.toFixed(6);
-      document.getElementById("cuso4Rate").textContent = cuso4LbPerAcreFt.toFixed(6);
-      document.getElementById("totalNeeded").textContent = totalLbs.toFixed(2) + " lbs";
+      cuDoseBox.textContent = cuMgL.toFixed(6);
+      cuso4RateBox.textContent = cuso4LbPerAcreFt.toFixed(6);
+      totalNeededBox.textContent = totalLbs.toFixed(2) + " lbs";
     }
 
     document.querySelectorAll("input").forEach(input => {
